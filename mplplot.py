@@ -54,6 +54,14 @@ class MplPlotCanvas(FigureCanvas):
         if self.img_shape != img_data.shape:
             self.img_shape = img_data.shape
             self.img_obj = None
+            if self.img_shape[0] < self.img_shape[1]:
+                self.bar_orient = 'horizontal'
+            else:
+                self.bar_orient = 'vertical'
+
+            if self.colorbar is not None:
+                self.colorbar.remove()
+                self.colorbar = None
 
         # If no image object exists, draw one and add a colorbar
         if self.img_obj is None:
