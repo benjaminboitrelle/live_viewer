@@ -14,8 +14,9 @@ class LiveViewReceiver():
     def __init__(self):
 
         self.context = zmq.Context()
-        self.socket = self.context.socket(zmq.PULL)
-        self.socket.connect("tcp://127.0.0.1:5558")
+        self.socket = self.context.socket(zmq.SUB)
+        self.socket.setsockopt_string(zmq.SUBSCRIBE, "")
+        self.socket.connect("tcp://127.0.0.1:1337")
 
         self.zmq_flags = 0
         self.zmq_copy = True
@@ -39,7 +40,7 @@ class LiveViewReceiver():
                 msg = self.socket.recv(flags=flags, copy=self.zmq_copy, track=self.zmq_track)
                 buf = memoryview(msg)
                 array = np.frombuffer(buf, dtype=header['dtype'])
-                frame_data =  array.reshape(header['shape'])
+                frame_data =  array.reshape([int(header["shape"][0]), int(header["shape"][1])])
                 #print("[Socket] recevied frame shape: " + repr(frame_data.shape))
                 self.frames_received += 1
 

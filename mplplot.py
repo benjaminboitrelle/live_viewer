@@ -35,8 +35,9 @@ class MplPlotCanvas(FigureCanvas):
         self.img_shape = None
         self.img_obj = None
         self.colorbar = None
+        self.bar_orient = 'horizontal'
 
-        self.render_frame(np.zeros((10, 10), dtype=np.uint16), min_val=0, max_val=4096)
+        self.render_frame(np.zeros((10, 10), dtype=np.uint16), min_val=0, max_val=10)
         self.figure.tight_layout()
 
     def render_frame(self, img_data, min_val=None, max_val=None):
@@ -63,7 +64,7 @@ class MplPlotCanvas(FigureCanvas):
                 cbar_ticks = np.linspace(
                     min_val, max_val, self.cbar_numticks, dtype=np.uint).tolist()
                 self.colorbar = self.figure.colorbar(
-                    self.img_obj, ax=self.axes, orientation='vertical', ticks=cbar_ticks)
+                    self.img_obj, ax=self.axes, orientation=self.bar_orient, ticks=cbar_ticks)
 
         # Otherwise just update the image data for speed
         else:
