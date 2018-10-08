@@ -24,7 +24,7 @@ class LiveViewProducerDefaults(object):
 
     def __init__(self):
         """Initialise default parameters."""
-        self.endpoint_url = "tcp://127.0.0.1:5558"
+        self.endpoint_url = "tcp://127.0.0.1:5020"
 
         self.num_frames = 1
         self.frame_rate = 1.0
@@ -132,8 +132,8 @@ class LiveViewProducer(object):
         # Calculate sleep time based on specified frame rate
         sleep_time = 1.0 / self.args.frame_rate
 
-        print("Sending {:d} frames at {:.1f} Hz".format(
-            self.args.num_frames, self.args.frame_rate))
+        print("Sending {:d} frames to endpoint {:s} at {:.1f} Hz".format(
+            self.args.num_frames, self.args.endpoint_url, self.args.frame_rate))
 
         # Loop over the number of frames specified and transmit random image data with the specified
         # parameters
