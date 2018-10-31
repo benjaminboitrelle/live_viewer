@@ -132,16 +132,24 @@ class LiveViewProducer(object):
         # Calculate sleep time based on specified frame rate
         sleep_time = 1.0 / self.args.frame_rate
 
-        print("Sending {:d} frames to endpoint {:s} at {:.1f} Hz".format(
-            self.args.num_frames, self.args.endpoint_url, self.args.frame_rate))
+        if self.args.num_frames > 0:
+            num_frames_str = str(self.args.num_frames) + ' '
+        else:
+            num_frames_str = ''
+        print("Sending {:s}frames to endpoint {:s} at {:.1f} Hz".format(
+            num_frames_str , self.args.endpoint_url, self.args.frame_rate))
 
         # Loop over the number of frames specified and transmit random image data with the specified
         # parameters
-        for frame in range(self.args.num_frames):
+        frames_sent = 0
+        
+        # for frame in range(self.args.num_frames):
+        while (self.args.num_frames == 0) or (frames_sent < self.args.num_frames):
             image_array = np.random.randint(
                 self.args.image_min, self.args.image_max+1,
                 (self.args.image_y, self.args.image_x), dtype=np.uint16)
-            self.send_frame(frame, image_array)
+            self.send_frame(frames_sent, image_array)
+            frames_sent += 1
             time.sleep(sleep_time)
 
         return 0
