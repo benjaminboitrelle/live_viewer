@@ -33,6 +33,7 @@ class LiveViewProducerDefaults(object):
         self.image_y = 256
         self.image_min = 0
         self.image_max = 4096
+        self.image_dtype = "uint16"
 
 
 class LiveViewProducer(object):
@@ -89,6 +90,9 @@ class LiveViewProducer(object):
         parser.add_argument('--max', type=int, dest='image_max',
                             default=self.defaults.image_max,
                             help='Set maximum value of image pixel data')
+        parser.add_argument('--dtype', type=str, dest='image_dtype',
+                            default=self.defaults.image_dtype,
+                            help='Set the dtype of the Image, as uint8/16/32')
 
         parsed_args = parser.parse_args(args)
         return parsed_args
@@ -140,7 +144,7 @@ class LiveViewProducer(object):
         for frame in range(self.args.num_frames):
             image_array = np.random.randint(
                 self.args.image_min, self.args.image_max+1,
-                (self.args.image_y, self.args.image_x), dtype=np.uint16)
+                (self.args.image_y, self.args.image_x), dtype=self.args.image_dtype)
             self.send_frame(frame, image_array)
             time.sleep(sleep_time)
 
