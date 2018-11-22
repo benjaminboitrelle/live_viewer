@@ -151,7 +151,7 @@ class LiveViewProducer(object):
         while (self.args.num_frames == 0) or (frames_sent < self.args.num_frames):
             image_array = np.random.randint(
                 self.args.image_min, self.args.image_max+1,
-                (self.args.image_y, self.args.image_x), dtype=np.uint16)
+                (self.args.image_y, self.args.image_x), dtype=self.args.image_dtype)
             self.send_frame(frames_sent, image_array)
             frames_sent += 1
             time.sleep(sleep_time)
