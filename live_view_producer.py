@@ -108,7 +108,12 @@ class LiveViewProducer(object):
         header = {
             'frame': frame_num,
             'dtype': str(image_arr.dtype),
+            'dsize': image_arr.nbytes,
             'shape': image_arr.shape,
+            'acquisition_id': 0,
+            'dataset': 'data',
+            'compression': 'none',
+            'tags': ['lv_data',],
         }
 
         # Send the header
