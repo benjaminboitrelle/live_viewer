@@ -414,5 +414,11 @@ def descrambleShot_2_Crs(scrmblShot,
     if cleanMemFlag:
         del multiImg_Grp_dscrmbld
     # that's all folks
-    out_dscrmbl = dscrmbld_GnCrsFn[0, 0, :, 32:, iCrs].astype('uint16')
-    return out_dscrmbl
+#    out_dscrmbl = dscrmbld_GnCrsFn[0, 0, :, 32:, iCrs].astype('uint16')
+#    return out_dscrmbl
+
+    crs = dscrmbld_GnCrsFn[0, 0, :, 32:, iCrs].astype('uint16')
+    fn = dscrmbld_GnCrsFn[0, 0, :, 32:, iFn].astype('uint16')
+    gn = dscrmbld_GnCrsFn[0, 0, :, 32:, iGn].astype('uint16')
+
+    return crs, fn, gn
