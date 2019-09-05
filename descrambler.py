@@ -179,8 +179,9 @@ def reorder_pixels_GnCrsFn_par(disord_6DAr, NADC, NColInRowBlk):
     # pixel reorder inside each block
     for ipix in range(NADC*NColInRowBlk):
         (ord_ADC, ord_Col) = ADCcolArray_1DA[ipix]
-        aux_pixOrd_padDisord_7DAr[:, :, :, :, ord_ADC, ord_Col, :] = disord_6DAr[:, :, :, :, ipix, :]
-    ord_7DAr[:, :, :, :, :, :, :] = aux_pixOrd_padDisord_7DAr[:, :, :, iP2M_ColGrp[:], :, :, :]
+        aux_pixOrd_padDisord_7DAr[...,
+                                  ord_ADC, ord_Col, :] = disord_6DAr[..., ipix, :]
+    ord_7DAr[...] = aux_pixOrd_padDisord_7DAr[..., iP2M_ColGrp[:], :, :, :]
     return ord_7DAr
 
 
@@ -276,10 +277,10 @@ def descrambleShot_2_Crs(scrmblShot,
                                  NGrp,
                                  4,
                                  NADC*aux_ncol//4), dtype='uint16') * ERRDLSraw
-        aux_reordered[:, :, 0, :] = aux_reord[:, :, 0, 0, :]
-        aux_reordered[:, :, 1, :] = aux_reord[:, :, 1, 0, :]
-        aux_reordered[:, :, 2, :] = aux_reord[:, :, 0, 1, :]
-        aux_reordered[:, :, 3, :] = aux_reord[:, :, 1, 1, :]
+        aux_reordered[..., 0, :] = aux_reord[..., 0, 0, :]
+        aux_reordered[..., 1, :] = aux_reord[..., 1, 0, :]
+        aux_reordered[..., 2, :] = aux_reord[..., 0, 1, :]
+        aux_reordered[..., 3, :] = aux_reord[..., 1, 1, :]
         aux_reordered = aux_reordered.reshape((aux_n_img,
                                                NGrp*NADC,
                                                aux_ncol))
@@ -302,7 +303,7 @@ def descrambleShot_2_Crs(scrmblShot,
     # track missing packets:
     # False==RowGrp OK; True== packet(s) missing makes rowgroup moot
     # (1111 1111 1111 1111 instead of 0xxx xxxx xxxx xxxx)
-    missingRowGrp_Tracker = data2srcmbl_noRefCol[:, :, :, 0, 0] == ERRDLSraw
+    missingRowGrp_Tracker = data2srcmbl_noRefCol[..., 0, 0] == ERRDLSraw
     # ---
     # descramble proper
     if verboseFlag:
@@ -316,7 +317,7 @@ def descrambleShot_2_Crs(scrmblShot,
                                    NGnCrsFn), dtype='int16')
     #
     # refCol
-    multiImgWithRefCol[:, :, :, 0, :, :] = ERRint16
+    multiImgWithRefCol[..., 0, :, :] = ERRint16
     #
     # descrambling
     data2srcmbl_noRefCol = data2srcmbl_noRefCol.reshape((NImg,
@@ -333,7 +334,7 @@ def descrambleShot_2_Crs(scrmblShot,
                                                                      NDataPad,
                                                                      NADC*auxNCol//NDataPad))
     # (NSmplRst,NGrp,NDataPad,NADC*aux_NCol//NDataPad)
-    theseImg_bitted = convert_uint_2_bits_Ar(data2srcmbl_noRefCol, 16)[:, :, :, :, :, -2::-1].astype('uint8')
+    theseImg_bitted = convert_uint_2_bits_Ar(data2srcmbl_noRefCol, 16)[..., -2::-1].astype('uint8')
     # n_smplrst,n_grp,n_data_pads,n_adc*aux_ncol//n_data_pads,15bits
     if cleanMemFlag:
         del data2srcmbl_noRefCol
@@ -352,21 +353,21 @@ def descrambleShot_2_Crs(scrmblShot,
     theseImg_bitted = theseImg_bitted.reshape((NImg*NSmplRst*NGrp*NDataPad*NADC*NColInBlk,
                                                NbitPerPix))
     (aux_coarse, aux_fine, aux_gain) = aggregate_to_GnCrsFn(convert_bits_2_uint16_Ar(theseImg_bitted[:, ::-1]))
-    multiImgWithRefCol[:, :, :, 1:, :, iGn] = aux_gain.reshape((NImg,
-                                                                NSmplRst,
-                                                                NGrp,
-                                                                NDataPad,
-                                                                NADC*NColInBlk))
-    multiImgWithRefCol[:, :, :, 1:, :, iCrs] = aux_coarse.reshape((NImg,
-                                                                   NSmplRst,
-                                                                   NGrp,
-                                                                   NDataPad,
-                                                                   NADC*NColInBlk))
-    multiImgWithRefCol[:, :, :, 1:, :, iFn] = aux_fine.reshape((NImg,
-                                                                NSmplRst,
-                                                                NGrp,
-                                                                NDataPad,
-                                                                NADC*NColInBlk))
+    multiImgWithRefCol[..., 1:, :, iGn] = aux_gain.reshape((NImg,
+                                                            NSmplRst,
+                                                            NGrp,
+                                                            NDataPad,
+                                                            NADC*NColInBlk))
+    multiImgWithRefCol[..., 1:, :, iCrs] = aux_coarse.reshape((NImg,
+                                                               NSmplRst,
+                                                               NGrp,
+                                                               NDataPad,
+                                                               NADC*NColInBlk))
+    multiImgWithRefCol[..., 1:, :, iFn] = aux_fine.reshape((NImg,
+                                                            NSmplRst,
+                                                            NGrp,
+                                                            NDataPad,
+                                                            NADC*NColInBlk))
     if cleanMemFlag:
         del aux_gain
         del aux_coarse
@@ -391,15 +392,15 @@ def descrambleShot_2_Crs(scrmblShot,
         for iGrp in range(NGrp):
             for iSmplRst in range(NSmplRst):
                 if (missingRowGrp_Tracker[iImg, iSmplRst, iGrp]):
-                    multiImg_Grp_dscrmbld[iImg, iSmplRst, iGrp, :, :, :, :] = ERRint16
+                    multiImg_Grp_dscrmbld[iImg, iSmplRst, iGrp, ...] = ERRint16
 
     # also err tracking for ref col
-    multiImg_Grp_dscrmbld[:, :, :, 0, :, :, :] = ERRint16
+    multiImg_Grp_dscrmbld[..., 0, :, :, :] = ERRint16
     if refColH1_0_Flag:
         if verboseFlag:
             printcol("moving RefCol data to G", 'blue')
-        multiImg_Grp_dscrmbld[:, :, :, 0, :, :, :] = multiImg_Grp_dscrmbld[:, :, :, 44, :, :, :]
-        multiImg_Grp_dscrmbld[:, :, :, 44, :, :, :] = ERRint16
+        multiImg_Grp_dscrmbld[..., 0, :, :, :] = multiImg_Grp_dscrmbld[..., 44, :, :, :]
+        multiImg_Grp_dscrmbld[..., 44, :, :, :] = ERRint16
     # ---
     #
     # reshaping as an Img array: (NImg,Smpl/Rst,n_grp,n_adc,n_pad,NColInBlk,Gn/Crs/Fn)
