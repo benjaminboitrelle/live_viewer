@@ -1,31 +1,23 @@
 # -*- coding: utf-8 -*-
 """
-general functions and fitting
-(a half-decent language would have those functions already). Python is worth what it costs.
+general functions and fitting.
+(a half-decent language would have those functions already).
+Python is worth what it costs.
 """
 
-import sys # command line argument, print w/o newline, version
-import time
+from itertools import product
+import sys  # command line argument, print w/o newline, version
 import numpy as np
 
-import math
-import matplotlib
-import matplotlib.pyplot
-matplotlib.pyplot.rcParams['image.cmap'] = 'jet'
-import os # list files in a folder
-import re # to sort naturally
-
-#%% constants
-VERYBIGNUMBER = 1e18
 
 NSmplRst = 2
 NGrp = 212
 NPad = 45
 NADC = 7
 NColInBlock = 32
-NRowInBlock = NADC #7
-NCol = NColInBlock*NPad # 32*45=1440, including RefCol
-NRow = NADC*NGrp # 212*7=1484
+NRowInBlock = NADC  # 7
+NCol = NColInBlock * NPad  # 32*45=1440, including RefCol
+NRow = NADC * NGrp  # 212*7=1484
 NbitPerPix = 15
 
 iGn = 0
@@ -33,52 +25,62 @@ iCrs = 1
 iFn = 2
 NGnCrsFn = 3
 iSmpl = 0
-iRst = 1
-NSmplRst = 2
 #
-ERRint16 = -256 # negative value usable to track Gn/Crs/Fn from missing pack
-ERRBlw = -0.1
-ERRDLSraw = 65535 # forbidden uint16, usable to track "pixel" from missing pack
+ERRint16 = -256  # negative value usable to track Gn/Crs/Fn from missing pack
+ERRDLSraw = 65535
+# forbidden uint16, usable to track "pixel" from missing pack
 
 # percival-specific data reordering functions
 
 # from P2M manual
 N_xcolArray = 4
 N_ncolArray = 8
-NADC = 7
-colArray = np.arange(N_xcolArray*N_ncolArray).reshape((N_xcolArray,
-                                                       N_ncolArray)).transpose()
-colArray = np.fliplr(colArray) # in the end it is colArray[ix,in]
+N_col_block = N_xcolArray * N_ncolArray
+colArray = np.arange(N_col_block).reshape((N_xcolArray,
+                                           N_ncolArray)).transpose()
+colArray = np.fliplr(colArray)  # in the end it is colArray[ix,in]
 
-# this gives the (iADC,iCol) indices of a pixel in a Rowblk, given its sequence in the streamout
+# this gives the (iADC,iCol) indices of a pixel in a Rowblk,
+# given its sequence in the streamout
 ADCcolArray_1DA = []
-for i_n in range(N_ncolArray):
-    for i_ADC in range(NADC)[::-1]:
-        for i_x in range(N_xcolArray):
-            ADCcolArray_1DA += [(i_ADC,colArray[i_n,i_x])]
-ADCcolArray_1DA = np.array(ADCcolArray_1DA) #to use this:  for ipix in range(32*7): (ord_ADC,ord_col)=ADCcolArray_1DA[ipix]
+for i_n, i_adc, i_x in product(range(N_ncolArray),
+                               range(NADC)[::-1],
+                               range(N_xcolArray)):
+    ADCcolArray_1DA.append((i_ADC, colArray[i_n, i_x]))
+
+# to use this:  for ipix in range(32*7):
+# (ord_ADC,ord_col)=ADCcolArray_1DA[ipix]
+ADCcolArray_1DA = np.array(ADCcolArray_1DA)
+
 
 iG = 0
-iH0 = np.arange(21+1,0+1-1,-1)
-iH1 = np.arange(22+21+1,22+0+1-1,-1)
-iP2M_ColGrp = np.append(np.array(iG),iH0)
-iP2M_ColGrp = np.append(iP2M_ColGrp,iH1)
+iH0 = np.arange(21+1, 0+1-1, -1)
+iH1 = np.arange(22+21+1, 22+0+1-1, -1)
+iP2M_ColGrp = np.append(np.array(iG), iH0)
+iP2M_ColGrp = np.append(iP2M_ColGrp, iH1)
 
-#%% print and stuff
-def printcol(string,colour):
+
+def printcol(string, colour):
     ''' write in colour (red/green/orange/blue/purple) '''
-    white  = '\033[0m'  # white (normal)
-    if (colour=='black'): outColor  = '\033[30m' # black
-    elif (colour=='red'): outColor= '\033[31m' # red
-    elif (colour=='green'): outColor  = '\033[32m' # green
-    elif (colour=='orange'): outColor  = '\033[33m' # orange
-    elif (colour=='blue'): outColor  = '\033[34m' # blue
-    elif (colour=='purple'): outColor  = '\033[35m' # purple
-    else: outColor  = '\033[30m'
+    white = '\033[0m'  # white (normal)
+    if (colour == 'black'):
+        outColor = '\033[30m'  # black
+    elif (colour == 'red'):
+        outColor = '\033[31m'  # red
+    elif (colour == 'green'):
+        outColor = '\033[32m'  # green
+    elif (colour == 'orange'):
+        outColor = '\033[33m'  # orange
+    elif (colour == 'blue'):
+        outColor = '\033[34m'  # blue
+    elif (colour == 'purple'):
+        outColor = '\033[35m'  # purple
+    else:
+        outColor = '\033[30m'
     print(outColor+string+white)
     sys.stdout.flush()
 
-#%% convert data types
+
 def convert_hex_byteSwap_2nd(data2convert_Ar):
     ''' interpret the ints in an array as 16 bits.
         byte-swap them: (byte0,byte1) => (byte1,byte0)
@@ -90,17 +92,19 @@ def convert_hex_byteSwap_2nd(data2convert_Ar):
     data_ByteSwapped_Ar = data_ByteSwapped_Ar.astype('uint16')
     return (data_ByteSwapped_Ar)
 
-def convert_uint_2_bits_Ar(in_intAr,Nbits):
+
+def convert_uint_2_bits_Ar(in_intAr, Nbits):
     ''' convert (numpyarray of uint => array of Nbits bits)
         for many bits in parallel
     '''
     inSize_T = in_intAr.shape
     in_intAr_flat = in_intAr.flatten()
-    out_NbitAr = np.zeros((len(in_intAr_flat),Nbits), dtype=bool)
+    out_NbitAr = np.zeros((len(in_intAr_flat), Nbits), dtype=bool)
     for iBits in range(Nbits):
-        out_NbitAr[:,iBits] = (in_intAr_flat>>iBits)&1
-    out_NbitAr= out_NbitAr.reshape(inSize_T+(Nbits,))
+        out_NbitAr[:, iBits] = (in_intAr_flat >> iBits) & 1
+    out_NbitAr = out_NbitAr.reshape(inSize_T+(Nbits,))
     return out_NbitAr
+
 
 def convert_britishBits_Ar(british_bit_array):
     ''' Conversion of bits defined by RAL to normal bit Conversion:
@@ -113,6 +117,7 @@ def convert_britishBits_Ar(british_bit_array):
     inverse_bit_aray = 1 - british_bit_array
     return inverse_bit_array
 
+
 def convert_bits_2_uint16_Ar(bitarray):
     """ Convert (numpyarray of [... , ... , n_bits] to
         array of [... , ... ](int) """
@@ -120,8 +125,9 @@ def convert_bits_2_uint16_Ar(bitarray):
     n_bits = shape[-1]
     out = np.zeros(shape[:-1], dtype='uint16')
     for ibit in range(n_bits):
-        out = (out << 1) | bitarray[...,n_bits-ibit-1]
+        out = (out << 1) | bitarray[..., n_bits-ibit-1]
     return out
+
 
 def decode_dataset_8bit(arr_in, bit_mask, bit_shift):
     """ Masks out bits and shifts """
@@ -129,6 +135,8 @@ def decode_dataset_8bit(arr_in, bit_mask, bit_shift):
     arr_out = np.right_shift(arr_out, bit_shift)
     arr_out = arr_out.astype(np.uint8)
     return arr_out
+
+
 def aggregate_to_GnCrsFn(raw_dset):
     """Extracts the coarse, fine and gain bits.
     0   1   2   3   4   5   6   7   8   9   10  11  12  13  14  15
@@ -136,53 +144,53 @@ def aggregate_to_GnCrsFn(raw_dset):
     """
     coarse_adc = decode_dataset_8bit(arr_in=raw_dset,
                                      bit_mask=0x1F,
-                                     bit_shift=0) # 0x1F   -> 0000000000011111
+                                     bit_shift=0)  # 0x1F -> 0000000000011111
     fine_adc = decode_dataset_8bit(arr_in=raw_dset,
                                    bit_mask=0x1FE0,
-                                   bit_shift=5) # 0x1FE0 -> 0001111111100000
+                                   bit_shift=5)  # 0x1FE0 -> 0001111111100000
     gain_bits = decode_dataset_8bit(arr_in=raw_dset,
                                     bit_mask=0x6000,
-                                    bit_shift=5+8) # 0x6000 -> 0110000000000000
+                                    bit_shift=5+8)  # 0x6000->0110000000000000
     return coarse_adc, fine_adc, gain_bits
 
-#%% P2M specific descrambling
-def reorder_pixels_GnCrsFn_par(disord_6DAr,NADC,NColInRowBlk):
-    """ P2M pixel reorder for a image: (NImg,NSmplrst, NGrp,NDataPads,NADC*NColInRowBlk,3),disordered =>  ((NImg,NSmplrst, NGrp,NDataPads,NADC,NColInRowBlk,3),ordered """
+
+# P2M specific descrambling
+def reorder_pixels_GnCrsFn_par(disord_6DAr, NADC, NColInRowBlk):
+    """ P2M pixel reorder for a image.
+        (NImg,NSmplrst, NGrp,NDataPads,NADC*NColInRowBlk,3),disordered
+          ((NImg,NSmplrst, NGrp,NDataPads,NADC,NColInRowBlk,3),ordered
+    """
     (aux_NImg,
      aux_NSmplRst,
      aux_NGrp,
      aux_NPads,
      aux_pixInBlk,
      auxNGnCrsFn) = disord_6DAr.shape
-    ord_7DAr= np.zeros((aux_NImg,
-                        aux_NSmplRst,
-                        aux_NGrp,
-                        aux_NPads,
-                        NADC,
-                        NColInRowBlk,
-                        auxNGnCrsFn),
-                    dtype='uint8')
-    aux_pixOrd_padDisord_7DAr= np.zeros((aux_NImg,
-                                         aux_NSmplRst,
-                                         aux_NGrp,
-                                         aux_NPads,
-                                         NADC,
-                                         NColInRowBlk,
-                                         auxNGnCrsFn),
-                                        dtype='uint8')
+
+    output_shape = (aux_NImg,
+                    aux_NSmplRst,
+                    aux_NGrp,
+                    aux_NPads,
+                    NADC,
+                    NColInRowBlk,
+                    auxNGnCrsFn)
+    ord_7DAr = np.zeros(output_shape, dtype='uint8')
+    aux_pixOrd_padDisord_7DAr = np.zeros(output_shape, dtype='uint8')
     # pixel reorder inside each block
     for ipix in range(NADC*NColInRowBlk):
-        (ord_ADC,ord_Col)=ADCcolArray_1DA[ipix]
-        aux_pixOrd_padDisord_7DAr[:,:, :,:,ord_ADC,ord_Col,:] = disord_6DAr[:,:, :,:,ipix,:]
-    ord_7DAr[:,:, :,:,:,:,:] = aux_pixOrd_padDisord_7DAr[:,:, :,iP2M_ColGrp[:],:,:,:]
+        (ord_ADC, ord_Col) = ADCcolArray_1DA[ipix]
+        aux_pixOrd_padDisord_7DAr[:, :, :, :, ord_ADC, ord_Col, :] = disord_6DAr[:, :, :, :, ipix, :]
+    ord_7DAr[:, :, :, :, :, :, :] = aux_pixOrd_padDisord_7DAr[:, :, :, iP2M_ColGrp[:], :, :, :]
     return ord_7DAr
 
-def descrambleShot_2_Crs(scrmblShot, refColH1_0_Flag,cleanMemFlag,verboseFlag):
-    out_dscrmbl= np.copy(scrmblShot)
-    #
-    #%% what's up doc
+
+def descrambleShot_2_Crs(scrmblShot,
+                         refColH1_0_Flag,
+                         cleanMemFlag,
+                         verboseFlag):
     """
-    descrambles the content of 1 odinDAQ-acquired (raw) shout, returns it in Gn/Crs/Fn format
+    Descramble content of 1 odinDAQ-acquired (raw) shout.
+    Return content in Gn/Crs/Fn format.
 
     Here is how data are scrambled:
 
@@ -227,38 +235,39 @@ def descrambleShot_2_Crs(scrmblShot, refColH1_0_Flag,cleanMemFlag,verboseFlag):
     Returns:
         descrambled array (DLSraw format)
     """
-    #
+    out_dscrmbl = np.copy(scrmblShot)
+
     NColInBlk = NColInBlock
     NDataPad = NPad - 1
-    #
-    thisFile_startTime = time.time()
-    # ---
+
     # convert to (1-img,row, col) because easier to integrate
-    (auxNRow,auxNCol) = scrmblShot.shape
-    scrmblShot = scrmblShot.reshape((1,auxNRow,auxNCol))
+    (auxNRow, auxNCol) = scrmblShot.shape
+    scrmblShot = scrmblShot.reshape((1, auxNRow, auxNCol))
     NImg = 1
-    # ---
+
     # solving 4a DAQ-scrambling: byte swap in hex (By0,By1) => (By1,By0)
-    # note that Smpl is likely to be rst and vice versa because Smpl-Rst-swapping
+    # N.B.: possible swipe between Smpl and Rst
     if verboseFlag:
-        printcol("solving DAQ-scrambling: byte-swapping and Smpl-Rst-swapping", 'blue')
+        printcol("solving DAQ-scrambling: byte-swapping and Smpl-Rst-swapping",
+                 'blue')
     scrmblShot_byteSwap = convert_hex_byteSwap_2nd(scrmblShot)
-    if cleanMemFlag
+    if cleanMemFlag:
         del scrmblShot
-    # ---
+
     # solving DAQ-scrambling: "pixel" reordering
     if verboseFlag:
         printcol("solving DAQ-scrambling: reordering subframes", 'blue')
+
     def convert_odin_daq_2_mezzanine(shot_in):
         ' descrambles the OdinDAQ-scrambling '
-        (aux_n_img,aux_nrow,aux_ncol) = shot_in.shape
+        (aux_n_img, aux_nrow, aux_ncol) = shot_in.shape
         aux_reord = shot_in.reshape((aux_n_img,
                                      NGrp,
                                      NADC,
                                      2,
                                      aux_ncol//2))
-        aux_reord= np.transpose(aux_reord,(0,1,3,2,4))
-        aux_reord= aux_reord.reshape((aux_n_img,
+        aux_reord = np.transpose(aux_reord, (0, 1, 3, 2, 4))
+        aux_reord = aux_reord.reshape((aux_n_img,
                                       NGrp,
                                       2,
                                       2,
@@ -267,86 +276,97 @@ def descrambleShot_2_Crs(scrmblShot, refColH1_0_Flag,cleanMemFlag,verboseFlag):
                                  NGrp,
                                  4,
                                  NADC*aux_ncol//4), dtype='uint16') * ERRDLSraw
-        aux_reordered[:,:,0,:]= aux_reord[:,:,0,0,:]
-        aux_reordered[:,:,1,:]= aux_reord[:,:,1,0,:]
-        aux_reordered[:,:,2,:]= aux_reord[:,:,0,1,:]
-        aux_reordered[:,:,3,:]= aux_reord[:,:,1,1,:]
-        aux_reordered= aux_reordered.reshape((aux_n_img,
-                                              NGrp*NADC,
-                                              aux_ncol))
+        aux_reordered[:, :, 0, :] = aux_reord[:, :, 0, 0, :]
+        aux_reordered[:, :, 1, :] = aux_reord[:, :, 1, 0, :]
+        aux_reordered[:, :, 2, :] = aux_reord[:, :, 0, 1, :]
+        aux_reordered[:, :, 3, :] = aux_reord[:, :, 1, 1, :]
+        aux_reordered = aux_reordered.reshape((aux_n_img,
+                                               NGrp*NADC,
+                                               aux_ncol))
         return aux_reordered
 
-    data2srcmbl_noRefCol= np.ones((NImg,
-                                   NSmplRst,
-                                   NRow,
-                                   auxNCol), dtype='uint16') * ERRDLSraw
-    data2srcmbl_noRefCol[:,iSmpl,:,:]= convert_odin_daq_2_mezzanine(scrmblShot_byteSwap)
+    data2srcmbl_noRefCol = np.ones((NImg,
+                                    NSmplRst,
+                                    NRow,
+                                    auxNCol), dtype='uint16') * ERRDLSraw
+    data2srcmbl_noRefCol[:, iSmpl, :, :] = convert_odin_daq_2_mezzanine(scrmblShot_byteSwap)
     if cleanMemFlag:
         del scrmblShot_byteSwap
 
-    data2srcmbl_noRefCol= data2srcmbl_noRefCol.reshape((NImg,
-                                                        NSmplRst,
-                                                        NGrp,
-                                                        NADC,
-                                                        auxNCol))
+    data2srcmbl_noRefCol = data2srcmbl_noRefCol.reshape((NImg,
+                                                         NSmplRst,
+                                                         NGrp,
+                                                         NADC,
+                                                         auxNCol))
 
-    # track missing packets: False==RowGrp OK; True== packet(s) missing makes rowgroup moot
+    # track missing packets:
+    # False==RowGrp OK; True== packet(s) missing makes rowgroup moot
     # (1111 1111 1111 1111 instead of 0xxx xxxx xxxx xxxx)
-    missingRowGrp_Tracker = data2srcmbl_noRefCol[:,:,:,0,0] == ERRDLSraw
+    missingRowGrp_Tracker = data2srcmbl_noRefCol[:, :, :, 0, 0] == ERRDLSraw
     # ---
     # descramble proper
     if verboseFlag:
-        printcol("solving mezzanine&chip-scrambling: pixel descrambling", 'blue')
-    multiImgWithRefCol= np.zeros((NImg,NSmplRst,NGrp,NPad,NADC*NColInBlk,NGnCrsFn), dtype='int16')
+        printcol("solving mezzanine&chip-scrambling: pixel descrambling",
+                 'blue')
+    multiImgWithRefCol = np.zeros((NImg,
+                                   NSmplRst,
+                                   NGrp,
+                                   NPad,
+                                   NADC*NColInBlk,
+                                   NGnCrsFn), dtype='int16')
     #
     # refCol
-    multiImgWithRefCol[:,:,:,0,:,:]= ERRint16
+    multiImgWithRefCol[:, :, :, 0, :, :] = ERRint16
     #
     # descrambling
     data2srcmbl_noRefCol = data2srcmbl_noRefCol.reshape((NImg,
-                                                        NSmplRst,
-                                                        NGrp,
-                                                        NADC*auxNCol //(NDataPad*2),
-                                                        NDataPad,
-                                                        2)) # 32bit=2"pix" from 1st pad, 2"pix" from 2nd pad, ...
+                                                         NSmplRst,
+                                                         NGrp,
+                                                         NADC*auxNCol//(NDataPad*2),
+                                                         NDataPad,
+                                                         2))
+    # 32bit = 2"pix" from 1st pad, 2"pix" from 2nd pad, etc.
     data2srcmbl_noRefCol = np.transpose(data2srcmbl_noRefCol,
-                                       (0,1,2,4,3,5)).reshape((NImg,
-                                                               NSmplRst,
-                                                               NGrp,
-                                                               NDataPad,
-                                                               NADC*auxNCol//NDataPad)) # (NSmplRst,NGrp,NDataPad,NADC*aux_NCol//NDataPad)
-    theseImg_bitted = convert_uint_2_bits_Ar(data2srcmbl_noRefCol,16)[:,:,:,:,:,-2::-1].astype('uint8') # n_smplrst,n_grp,n_data_pads,n_adc*aux_ncol//n_data_pads,15bits
+                                        (0, 1, 2, 4, 3, 5)).reshape((NImg,
+                                                                     NSmplRst,
+                                                                     NGrp,
+                                                                     NDataPad,
+                                                                     NADC*auxNCol//NDataPad))
+    # (NSmplRst,NGrp,NDataPad,NADC*aux_NCol//NDataPad)
+    theseImg_bitted = convert_uint_2_bits_Ar(data2srcmbl_noRefCol, 16)[:, :, :, :, :, -2::-1].astype('uint8')
+    # n_smplrst,n_grp,n_data_pads,n_adc*aux_ncol//n_data_pads,15bits
     if cleanMemFlag:
         del data2srcmbl_noRefCol
     theseImg_bitted = theseImg_bitted.reshape((NImg,
-                                              NSmplRst,
-                                              NGrp,
-                                              NDataPad,
-                                              NbitPerPix,
-                                              NADC*NColInBlk))
-    theseImg_bitted = np.transpose(theseImg_bitted,(0,1,2,3,5,4)) # (NImg, n_smplrst,n_grp,n_data_pads,NPixsInRowBlk,15)
+                                               NSmplRst,
+                                               NGrp,
+                                               NDataPad,
+                                               NbitPerPix,
+                                               NADC*NColInBlk))
+    theseImg_bitted = np.transpose(theseImg_bitted, (0, 1, 2, 3, 5, 4))
+    # (NImg, n_smplrst,n_grp,n_data_pads,NPixsInRowBlk,15)
     theseImg_bitted = convert_britishBits_Ar(theseImg_bitted).reshape((NImg,
                                                                        NSmplRst*NGrp*NDataPad*NADC*NColInBlk,
                                                                        NbitPerPix))
 
     theseImg_bitted = theseImg_bitted.reshape((NImg*NSmplRst*NGrp*NDataPad*NADC*NColInBlk,
-                                             NbitPerPix))
-    (aux_coarse,aux_fine,aux_gain) = aggregate_to_GnCrsFn( convert_bits_2_uint16_Ar(theseImg_bitted[:,::-1]) )
-    multiImgWithRefCol[:,:,:,1:,:,iGn] =  aux_gain.reshape((NImg,
-                                                            NSmplRst,
-                                                            NGrp,
-                                                            NDataPad,
-                                                            NADC*NColInBlk))
-    multiImgWithRefCol[:,:,:,1:,:,iCrs] = aux_coarse.reshape((NImg,
-                                                              NSmplRst,
-                                                              NGrp,
-                                                              NDataPad,
-                                                              NADC*NColInBlk))
-    multiImgWithRefCol[:,:,:,1:,:,iFn] =  aux_fine.reshape((NImg,
-                                                            NSmplRst,
-                                                            NGrp,
-                                                            NDataPad,
-                                                            NADC*NColInBlk))
+                                               NbitPerPix))
+    (aux_coarse, aux_fine, aux_gain) = aggregate_to_GnCrsFn(convert_bits_2_uint16_Ar(theseImg_bitted[:, ::-1]))
+    multiImgWithRefCol[:, :, :, 1:, :, iGn] = aux_gain.reshape((NImg,
+                                                                NSmplRst,
+                                                                NGrp,
+                                                                NDataPad,
+                                                                NADC*NColInBlk))
+    multiImgWithRefCol[:, :, :, 1:, :, iCrs] = aux_coarse.reshape((NImg,
+                                                                   NSmplRst,
+                                                                   NGrp,
+                                                                   NDataPad,
+                                                                   NADC*NColInBlk))
+    multiImgWithRefCol[:, :, :, 1:, :, iFn] = aux_fine.reshape((NImg,
+                                                                NSmplRst,
+                                                                NGrp,
+                                                                NDataPad,
+                                                                NADC*NColInBlk))
     if cleanMemFlag:
         del aux_gain
         del aux_coarse
@@ -365,33 +385,34 @@ def descrambleShot_2_Crs(scrmblShot, refColH1_0_Flag,cleanMemFlag,verboseFlag):
     # add error tracking
     if verboseFlag:
         printcol("lost packet tracking", 'blue')
-    multiImg_Grp_dscrmbld = multiImg_Grp_dscrmbld.astype('int16') # -256 upto 255
+    multiImg_Grp_dscrmbld = multiImg_Grp_dscrmbld.astype('int16')
+    # -256 upto 255
     for iImg in range(NImg):
         for iGrp in range(NGrp):
             for iSmplRst in range(NSmplRst):
-                if (missingRowGrp_Tracker[iImg,iSmplRst,iGrp]):
-                    multiImg_Grp_dscrmbld[iImg,iSmplRst,iGrp,:,:,:,:] = ERRint16
+                if (missingRowGrp_Tracker[iImg, iSmplRst, iGrp]):
+                    multiImg_Grp_dscrmbld[iImg, iSmplRst, iGrp, :, :, :, :] = ERRint16
 
     # also err tracking for ref col
-    multiImg_Grp_dscrmbld[:,:,:,0,:,:,:] = ERRint16
+    multiImg_Grp_dscrmbld[:, :, :, 0, :, :, :] = ERRint16
     if refColH1_0_Flag:
         if verboseFlag:
             printcol("moving RefCol data to G", 'blue')
-        multiImg_Grp_dscrmbld[:,:,:,0,:,:,:] = multiImg_Grp_dscrmbld[:,:,:,44,:,:,:]
-        multiImg_Grp_dscrmbld[:,:,:,44,:,:,:] = ERRint16
+        multiImg_Grp_dscrmbld[:, :, :, 0, :, :, :] = multiImg_Grp_dscrmbld[:, :, :, 44, :, :, :]
+        multiImg_Grp_dscrmbld[:, :, :, 44, :, :, :] = ERRint16
     # ---
     #
     # reshaping as an Img array: (NImg,Smpl/Rst,n_grp,n_adc,n_pad,NColInBlk,Gn/Crs/Fn)
     if verboseFlag:
         printcol("reshaping as an Img array", 'blue')
     dscrmbld_GnCrsFn = np.transpose(multiImg_Grp_dscrmbld,
-                                    (0,1,2,4,3,5,6)).astype('int16').reshape((NImg,
-                                                                              NSmplRst,
-                                                                              NGrp*NADC,
-                                                                              NPad*NColInBlk,
-                                                                              NGnCrsFn))
+                                    (0, 1, 2, 4, 3, 5, 6)).astype('int16').reshape((NImg,
+                                                                                    NSmplRst,
+                                                                                    NGrp*NADC,
+                                                                                    NPad*NColInBlk,
+                                                                                    NGnCrsFn))
     if cleanMemFlag:
         del multiImg_Grp_dscrmbld
     # that's all folks
-    out_dscrmbl = dscrmbld_GnCrsFn[0,0,:,32:,iCrs].astype('uint16')
+    out_dscrmbl = dscrmbld_GnCrsFn[0, 0, :, 32:, iCrs].astype('uint16')
     return out_dscrmbl
