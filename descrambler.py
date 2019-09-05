@@ -46,7 +46,7 @@ ADCcolArray_1DA = []
 for i_n, i_adc, i_x in product(range(N_ncolArray),
                                range(NADC)[::-1],
                                range(N_xcolArray)):
-    ADCcolArray_1DA.append((i_ADC, colArray[i_n, i_x]))
+    ADCcolArray_1DA.append((i_adc, colArray[i_n, i_x]))
 
 # to use this:  for ipix in range(32*7):
 # (ord_ADC,ord_col)=ADCcolArray_1DA[ipix]
@@ -64,20 +64,20 @@ def printcol(string, colour):
     ''' write in colour (red/green/orange/blue/purple) '''
     white = '\033[0m'  # white (normal)
     if (colour == 'black'):
-        outColor = '\033[30m'  # black
+        out_color = '\033[30m'  # black
     elif (colour == 'red'):
-        outColor = '\033[31m'  # red
+        out_color = '\033[31m'  # red
     elif (colour == 'green'):
-        outColor = '\033[32m'  # green
+        out_color = '\033[32m'  # green
     elif (colour == 'orange'):
-        outColor = '\033[33m'  # orange
+        out_color = '\033[33m'  # orange
     elif (colour == 'blue'):
-        outColor = '\033[34m'  # blue
+        out_color = '\033[34m'  # blue
     elif (colour == 'purple'):
-        outColor = '\033[35m'  # purple
+        out_color = '\033[35m'  # purple
     else:
-        outColor = '\033[30m'
-    print(outColor+string+white)
+        out_color = '\033[30m'
+    print(out_color+string+white)
     sys.stdout.flush()
 
 
@@ -418,8 +418,8 @@ def descrambleShot_2_Crs(scrmblShot,
 #    out_dscrmbl = dscrmbld_GnCrsFn[0, 0, :, 32:, iCrs].astype('uint16')
 #    return out_dscrmbl
 
-    crs = dscrmbld_GnCrsFn[0, 0, :, 32:, iCrs].astype('uint16')
-    fn = dscrmbld_GnCrsFn[0, 0, :, 32:, iFn].astype('uint16')
-    gn = dscrmbld_GnCrsFn[0, 0, :, 32:, iGn].astype('uint16')
+    coarse = dscrmbld_GnCrsFn[0, 0, :, 32:, iCrs].astype('uint16')
+    fine = dscrmbld_GnCrsFn[0, 0, :, 32:, iFn].astype('uint16')
+    gain = dscrmbld_GnCrsFn[0, 0, :, 32:, iGn].astype('uint16')
 
-    return crs, fn, gn
+    return coarse, fine, gain
