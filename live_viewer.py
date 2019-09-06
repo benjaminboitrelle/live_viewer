@@ -17,9 +17,8 @@ import numpy as np
 from mplplot import MplPlotCanvas, MplNavigationToolbar
 from framestatsbar import FrameStatisticsBar
 
-### descrambler ########### ########### ########### ########### ########### ########### ###########
-from APy3_descr4viewer import descrambleShot_2_Crs
-########################### ########### ########### ########### ########### ########### ###########
+from descrambler import descrambleShot_2_Crs
+
 
 class LiveViewerDefaults(object):
     """
@@ -106,13 +105,11 @@ class LiveViewReceiver():
                 array = np.frombuffer(buf, dtype=header['dtype'])
                 frame_data =  array.reshape([int(header["shape"][0]), int(header["shape"][1])])
 
-                ### descrambler ########### ########### ########### ########### ########### ########### ###########
                 frame_data= descrambleShot_2_Crs(frame_data,
                                                  False, # refColH1_0_Flag
                                                  True,  # cleanmem
                                                  False) # verbose
 
-                ### ########### ########### ########### ########### ########### ########### ########### ###########
 
                 if self.debug_socket:
                     print("[Socket] recevied frame shape: " + repr(frame_data.shape))
@@ -276,7 +273,9 @@ class LiveViewer(QtWidgets.QMainWindow):
 
         # Plot frame data if returned
         if frame_data is not None:
+            print(len(frame_data))
             self.plot.render_frame(frame_data)
+
             self.frames_shown += 1
 
         # Update statistics bar

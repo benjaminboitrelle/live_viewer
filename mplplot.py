@@ -61,6 +61,35 @@ class MplPlotCanvas(FigureCanvas):
         self.render_frame(np.zeros((10, 10), dtype=np.uint16), min_val=0, max_val=10)
         self.figure.tight_layout()
 
+    def set_axes(self, img_data):
+        """
+        Redefine the number of plots.
+        """
+ #       for i in range(len(img_data)):
+#            print(i)
+        self.axes = [self.figure.add_subplot(1, 3, i+1) for i in range(len(img_data))]
+
+    def get_min_max(self, img_data, min_val, max_val):
+        """
+        Get min and max values of all images.
+
+        Return tuple tuple
+        """
+        if min_val is None:
+            min_val = [np.amin(img_data[i]) for i in range(len(img_data))]
+        if max_val is None:
+            max_val = [np.amax(img_data[i]) for i in range(len(img_data))]
+        return min_val, max_val
+
+    def check_data_shape(self, img_data):
+        """
+        Check if the shape of the incoming data has changed.
+        """
+        for i in range(len(img_data)):
+            if self.img_shape[i] != img_data
+        self.img_shape = [img_data[i].shape for i in range(len(img_data))
+                          if(self.img_shape != img_data[i].shape)]
+
     def render_frame(self, img_data, min_val=None, max_val=None):
         """
         Render an image frame in the plot canvas.
@@ -69,6 +98,14 @@ class MplPlotCanvas(FigureCanvas):
         the image data is just updated if there is no change to the image shape, otherwise
         the axes and colorbar are redrawn.
         """
+        if len(img_data) == 3:
+            print("Redefining number of axes to plot")
+            self.set_axes(img_data)
+            min_val1, max_val1 = self.get_min_max(img_data, min_val, max_val)
+            self.img_shape
+
+
+
         # If the minimum and/or maximum values are not defined, determine from the 
         # incoming image data
         if min_val is None:
