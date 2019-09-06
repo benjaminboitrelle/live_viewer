@@ -17,6 +17,10 @@ import numpy as np
 from mplplot import MplPlotCanvas, MplNavigationToolbar
 from framestatsbar import FrameStatisticsBar
 
+### descrambler ########### ########### ########### ########### ########### ########### ###########
+from APy3_descr4viewer import descrambleShot_2_Crs
+########################### ########### ########### ########### ########### ########### ###########
+
 class LiveViewerDefaults(object):
     """
     Default parameters for the live viewer.
@@ -91,6 +95,9 @@ class LiveViewReceiver():
                 if self.debug_socket:
                     print("[Socket] received header: " + repr(header))
 
+                if header['dtype'] == 'unknown':
+                    header['dtype'] = 'uint16'
+
                 # Receive the image data payload and convert into a numpy array
                 # with the appropriate shape
                 msg = self.socket.recv(
@@ -98,6 +105,15 @@ class LiveViewReceiver():
                 buf = memoryview(msg)
                 array = np.frombuffer(buf, dtype=header['dtype'])
                 frame_data =  array.reshape([int(header["shape"][0]), int(header["shape"][1])])
+
+                ### descrambler ########### ########### ########### ########### ########### ########### ###########
+                frame_data= descrambleShot_2_Crs(frame_data,
+                                                 False, # refColH1_0_Flag
+                                                 True,  # cleanmem
+                                                 False) # verbose
+
+                ### ########### ########### ########### ########### ########### ########### ########### ###########
+
                 if self.debug_socket:
                     print("[Socket] recevied frame shape: " + repr(frame_data.shape))
 
