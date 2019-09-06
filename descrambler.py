@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*-
+ll# -*- coding: utf-8 -*-
 """
 general functions and fitting.
 (a half-decent language would have those functions already).
@@ -185,10 +185,10 @@ def reorder_pixels_GnCrsFn_par(disord_6DAr, NADC, NColInRowBlk):
     return ord_7DAr
 
 
-def descrambleShot_2_Crs(scrmblShot,
-                         refColH1_0_Flag,
-                         cleanMemFlag,
-                         verboseFlag):
+def descramble_to_crs_fn_gn(scrmblShot,
+                            refColH1_0_Flag,
+                            cleanMemFlag,
+                            verboseFlag):
     """
     Descramble content of 1 odinDAQ-acquired (raw) shout.
     Return content in Gn/Crs/Fn format.

@@ -17,7 +17,7 @@ import numpy as np
 from mplplot import MplPlotCanvas, MplNavigationToolbar
 from framestatsbar import FrameStatisticsBar
 
-from descrambler import descrambleShot_2_Crs
+from descrambler import descramble_to_crs_fn_gn
 
 
 class LiveViewerDefaults(object):
@@ -105,10 +105,10 @@ class LiveViewReceiver():
                 array = np.frombuffer(buf, dtype=header['dtype'])
                 frame_data =  array.reshape([int(header["shape"][0]), int(header["shape"][1])])
 
-                frame_data= descrambleShot_2_Crs(frame_data,
-                                                 False, # refColH1_0_Flag
-                                                 True,  # cleanmem
-                                                 False) # verbose
+                frame_data= descramble_to_crs_fn_gn(frame_data,
+                                                    False, # refColH1_0_Flag
+                                                    True,  # cleanmem
+                                                    False) # verbose
 
 
                 if self.debug_socket:
