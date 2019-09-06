@@ -273,8 +273,7 @@ class LiveViewer(QtWidgets.QMainWindow):
 
         # Plot frame data if returned
         if frame_data is not None:
-            print(len(frame_data))
-            self.plot.render_frame(frame_data)
+            self.plot.multi_render_frame(frame_data)
 
             self.frames_shown += 1
 
