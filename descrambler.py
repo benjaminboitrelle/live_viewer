@@ -1,4 +1,4 @@
-ll# -*- coding: utf-8 -*-
+# -*- coding: utf-8 -*-
 """
 general functions and fitting.
 (a half-decent language would have those functions already).
