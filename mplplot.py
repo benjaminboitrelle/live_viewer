@@ -37,7 +37,7 @@ class MplPlotCanvas(FigureCanvas):
         within it.
         """
         # Create a list of ADC part for plotting
-        self.adc = ('Coarse', 'Fine', 'ain')
+        self.adc = ('Coarse', 'Fine', 'Gain')
 
         # Create the figure canvas
         self.figure = Figure(dpi=dpi)
@@ -126,7 +126,7 @@ class MplPlotCanvas(FigureCanvas):
         if self.img_obj[adc] is None:
             self.img_obj[adc] = axe.imshow(
                 img_data, interpolation='nearest', vmin=min_val, vmax=max_val, cmap='jet')
-
+            axe.invert_xaxis()
             if self.colorbar[adc] is None:
                 cbar_ticks = np.linspace(
                     min_val, max_val, self.cbar_numticks, dtype=np.uint).tolist()
