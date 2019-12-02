@@ -47,34 +47,30 @@ class MplPlotCanvas(FigureCanvas):
                 QtWidgets.QSizePolicy.Expanding,
                 QtWidgets.QSizePolicy.Expanding)
         FigureCanvas.updateGeometry(self)
-        
+
         # Add the image axes to the figure
         self.axes = (self.figure.add_subplot(1, 3, 1),
                    self.figure.add_subplot(1, 3, 2),
                    self.figure.add_subplot(1, 3, 3))
 
-        self.axes[0].set_xticks([])
-        self.axes[0].set_yticks([])
         self.axes[0].set_title(self.adc[0])
-        self.axes[1].set_xticks([])
-        self.axes[1].set_yticks([])
         self.axes[1].set_title(self.adc[1])
-        self.axes[2].set_xticks([])
-        self.axes[2].set_yticks([])
         self.axes[2].set_title(self.adc[2])
 
 
         # Set up storage variables
         self.img_range = ()
-        self.img_shape = None
+        self.img_shape = {self.adc[0]: None,
+                        self.adc[1]: None,
+                        self.adc[2]: None}
         self.img_obj = {self.adc[0]: None,
-                        self.adc[1]: None, 
+                        self.adc[1]: None,
                         self.adc[2]: None}
         self.colorbar = {self.adc[0]: None,
                          self.adc[1]: None,
                          self.adc[2]: None}
         self.bar_orient = 'horizontal'
- 
+
         # Render an initial empty image frame
         tmp_img = (np.zeros((10, 10), dtype=np.uint16),
                    np.zeros((10, 10), dtype=np.uint16),
@@ -98,7 +94,7 @@ class MplPlotCanvas(FigureCanvas):
         the image data is just updated if there is no change to the image shape, otherwise
         the axes and colorbar are redrawn.
         """
-        # If the minimum and/or maximum values are not defined, determine from the 
+        # If the minimum and/or maximum values are not defined, determine from the
         # incoming image data
         if min_val is None:
             min_val = np.amin(img_data)
@@ -107,12 +103,12 @@ class MplPlotCanvas(FigureCanvas):
 
         # If the shape of the incoming data has changed, delete the image object to force
         # a redraw
-        if self.img_shape != img_data.shape:
-            self.img_shape = img_data.shape
+        if self.img_shape[adc] != img_data.shape:
+            self.img_shape[adc] = img_data.shape
             self.img_obj.update({adc: None})
 
             # Set the colorbar orientation dependent on the aspect ratio of the image
-            if self.img_shape[0] < self.img_shape[1]:
+            if self.img_shape[adc][0] < self.img_shape[adc][1]:
                 self.bar_orient = 'horizontal'
             else:
                 self.bar_orient = 'vertical'
